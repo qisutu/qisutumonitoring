@@ -47,7 +47,7 @@ Projektwebsite: https://monitoring.qisutu.de
 ## Release-Status
 
 Version 1.0.1 ist die erste öffentliche Veröffentlichung von Qisutu Monitoring.
-Das vollständige Installationspaket heißt `qisutumonitoring-1.0.1.tar.gz` und
+Das vollständige Installationspaket heißt `QisutuMonitoring-1.0.1.tar.gz` und
 enthält das Programm, die Weboberfläche, alle elf Sprachdateien und die benötigte
 Tornado-Bibliothek.
 
