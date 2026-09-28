@@ -67,6 +67,7 @@ def database_check(cfg, timeout):
     binary = shutil.which('psql') if pg else (shutil.which('mariadb') or shutil.which('mysql'))
     if not binary:
         raise CheckFailure(('PostgreSQL-Client (psql)' if pg else 'MariaDB/MySQL-Client')+' fehlt auf dem Monitoring-Server. Installer erneut ausführen oder Clientpaket bereitstellen.')
+    replication_values = {}
     env = {k:v for k,v in os.environ.items() if not k.startswith(('PG','MYSQL','MARIADB'))}
     env['LC_ALL'] = 'C'
     ca = ssl.get_default_verify_paths().cafile
@@ -114,8 +115,48 @@ def database_check(cfg, timeout):
             if any(s in error for s in ('denied','authentication','permission','password')):
                 raise CheckFailure('Datenbankzugang oder Leserechte abgelehnt. Benutzer, Passwort und Statistikrechte prüfen.')
             raise CheckFailure('Datenbankabfrage fehlgeschlagen. Adresse, Port, Datenbankname und Clientversion prüfen.')
+        if cfg.get('replication'):
+            if pg:
+                replication_sql = """BEGIN READ ONLY;
+SELECT 'replicas',count(*) FROM pg_stat_replication;
+SELECT 'replication_delay',EXTRACT(EPOCH FROM MAX(replay_lag)) FROM pg_stat_replication;
+SELECT 'standby',CASE WHEN pg_is_in_recovery() THEN 1 ELSE 0 END;
+SELECT 'replay_pending_bytes',CASE WHEN pg_is_in_recovery() THEN pg_wal_lsn_diff(pg_last_wal_receive_lsn(),pg_last_wal_replay_lsn()) ELSE NULL END;
+COMMIT;"""
+                extra = subprocess.run(args,input=replication_sql,text=True,capture_output=True,env=env,timeout=max(1,timeout-1-(time.monotonic()-started)))
+                if extra.returncode:
+                    replication_values['unavailable'] = 1
+                else:
+                    for line in extra.stdout.splitlines():
+                        parts = line.split('\t')
+                        if len(parts)==2: replication_values[parts[0]] = numeric(parts[1])
+            else:
+                columns_args = [a for a in args if a != '--skip-column-names']
+                for statement in ('SHOW REPLICA STATUS;', 'SHOW SLAVE STATUS;'):
+                    extra = subprocess.run(columns_args,input=statement,text=True,capture_output=True,env=env,timeout=max(1,timeout-1-(time.monotonic()-started)))
+                    if extra.returncode == 0: break
+                lines = extra.stdout.splitlines()
+                if extra.returncode or len(lines)<2:
+                    replication_values['unavailable'] = 1
+                else:
+                    status = dict(zip(lines[0].split('\t'),lines[1].split('\t')))
+                    replication_values = {'replication_delay':numeric(status.get('Seconds_Behind_Source',status.get('Seconds_Behind_Master'))),
+                        'io_running':int(status.get('Replica_IO_Running',status.get('Slave_IO_Running'))=='Yes'),
+                        'sql_running':int(status.get('Replica_SQL_Running',status.get('Slave_SQL_Running'))=='Yes')}
         values = {}
         for line in proc.stdout.splitlines():
             parts = line.split('\t')
             if len(parts)==2: values[parts[0]] = numeric(parts[1])
-        return database_metrics(values,cfg,(time.monotonic()-started)*1000)
+        metrics = database_metrics(values,cfg,(time.monotonic()-started)*1000)
+        if cfg.get('replication'):
+            if replication_values.get('unavailable'):
+                metrics.append(metric('replication:missing','Replikation',message='Replikationsstatistik nicht verfügbar. Rolle und Statistikrechte prüfen.'))
+            for key,label,unit in [('replicas','Verbundene Replikate',''),('replication_delay','Replikationsverzögerung','s'),
+                ('standby','Standby-Rolle',''),('replay_pending_bytes','WAL zur Wiedergabe ausstehend','B'),
+                ('io_running','Replikation: Empfang läuft',''),('sql_running','Replikation: Anwendung läuft','')]:
+                if key in replication_values:
+                    value=replication_values[key]
+                    metrics.append(metric('replication:'+key,label,value,unit,status=('up' if value else 'critical') if key.endswith('_running') else None,
+                        warn=cfg.get('replication_warn',30) if key=='replication_delay' else None,
+                        critical=cfg.get('replication_crit',120) if key=='replication_delay' else None))
+        return metrics

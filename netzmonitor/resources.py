@@ -179,14 +179,16 @@ class ResourceStore:
             else:
                 raise ValueError('Unbekannte Ressourcenaktion.')
 
-    def record_resource(self, target, result):
-        now=time.time()
-        with self.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+    def record_resource(self, target, result, _db=None, _time=None):
+        now=time.time() if _time is None else _time
+        with self.connect(_db) as db:
+            if _db is None: db.execute('BEGIN IMMEDIATE')
             self.refresh_license_access(db)
             current=db.execute(RESOURCE_SELECT+' WHERE r.id=?',(target['id'],)).fetchone()
             if (not current or not current['enabled'] or not current['device_enabled'] or current['device_license_blocked'] or current['device_blocked'] or
                 current['device_block_revision']!=target.get('device_block_revision',0) or current['revision']!=target['revision'] or current['device_revision']!=target['device_revision']):
+                return
+            if current['last_checked'] is not None and now < current['last_checked']:
                 return
             failures=0
             before={r['metric_key']:dict(r) for r in db.execute('SELECT * FROM resource_metrics WHERE target_id=?',(target['id'],))}
@@ -246,15 +248,16 @@ class ResourceStore:
                 db.execute('INSERT INTO events(time,name,kind,message) VALUES(?,?,?,?)',(now,current['device_name']+' · Ressourcen',{'critical':'down','unknown':'error'}.get(status,status),message))
             db.execute('UPDATE resource_targets SET status=?,message=?,failures=?,last_checked=?,next_check=? WHERE id=?',(status,message,failures,now,now+current['interval'],target['id']))
             details='\n'.join(m['label']+': '+(str(round(m['percent'],1))+' %' if m['percent'] is not None else m.get('message','')) for m in observed.values() if m['status'] not in ('up','pending'))
-            self.record_notification(db, 'resource', current, status, message, now,
-                provisional=(result['kind']=='down' and failures<current['threshold']),details=details)
+            if _time is None or time.time()-now <= max(300,current['interval']*3):
+                self.record_notification(db, 'resource', current, status, message, now,
+                    provisional=(result['kind']=='down' and failures<current['threshold']),details=details)
 
 
 def parse_output(output, root):
     values={}
     for line in output.splitlines():
         match=re.fullmatch(r'(\.[0-9.]+)\s*=\s*(.*)',line)
-        if not match or not match[1].startswith(root+'.'):
+        if not match or not (match[1] == root or match[1].startswith(root+'.')):
             continue
         oid,raw=match.groups()
         # Net-SNMP -Ot prints TimeTicks without the type prefix.
@@ -342,13 +345,14 @@ class CheckError(Exception):
     pass
 
 
-def run_walk(binary, target, oid, directory, deadline, *, bulk=True):
+def run_walk(binary, target, oid, directory, deadline, *, bulk=True, include_root=False):
     remaining=deadline-time.monotonic()
     if remaining<=0: raise CheckError('Gesamte Antwortfrist überschritten.')
     host=target['device_address']
     endpoint=('udp6:['+host+']:' if ':' in host else 'udp:'+host+':')+str(target['port'])
     args=[binary,'-On','-Oe','-Ot','-OU','-m','','-Cr25','-t',str(min(2,remaining)),'-r','0',endpoint,oid]
     if not bulk: args.remove('-Cr25')
+    if include_root: args.insert(1,'-Ci')
     if oid=='.1.3.6.1.2.1.25.3.5': args.insert(1,'-Ox')
     env={**os.environ,'SNMPCONFPATH':directory,'SNMP_PERSISTENT_DIR':directory,'MIBS':'','LC_ALL':'C'}
     proc=subprocess.Popen(args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env=env)

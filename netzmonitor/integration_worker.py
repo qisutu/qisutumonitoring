@@ -37,7 +37,11 @@ def run(data):
         elif kind=='quality':
             from .check_quality import quality_check
             metrics=quality_check(cfg,data['timeout'])
-        else:raise CheckFailure('Unbekannte Prüfungsart.')
+        else:
+            from .advanced_config import SCHEMAS
+            from .check_custom import check
+            if kind not in SCHEMAS: raise CheckFailure('Unbekannte Prüfungsart.')
+            metrics=check(kind,cfg,timeout)
         if not metrics:raise CheckFailure('Keine Messwerte geliefert. Auswahl und Leserechte prüfen.')
         return dict(kind='ok',metrics=metrics,inventory=inventory,message='')
     except CheckFailure as exc:message=str(exc)

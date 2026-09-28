@@ -2,6 +2,7 @@
 import json
 import math
 from pathlib import Path
+from .advanced_config import SCHEMAS, SECRET_FIELDS, validate_advanced
 import subprocess
 import sys
 import time
@@ -10,8 +11,9 @@ KINDS = {'tls': 'TLS-Zertifikat', 'dns': 'DNS', 'smtp': 'SMTP', 'imap': 'IMAP', 
          'windows': 'Windows', 'hyperv': 'Hyper-V', 'vmware': 'VMware', 'redfish': 'iLO / iDRAC / Redfish',
          'synology': 'Synology NAS', 'ups': 'USV (UPS-MIB)', 'database': 'Datenbank', 'printer': 'Drucker',
          'flow': 'Datenverkehr nach Verursacher', 'quality': 'Netzwerkqualität'}
+KINDS.update({key: row['label'] for key,row in SCHEMAS.items()})
 DEFAULT_INTERVALS = {'tls': 86400, 'database': 60, 'printer': 300, 'flow': 60, 'quality': 60}
-SECRETS = ('password', 'community', 'auth_password', 'priv_password')
+SECRETS = ('password', 'community', 'auth_password', 'priv_password') + SECRET_FIELDS
 SELECT = '''SELECT i.*,d.name AS device_name,d.address AS device_address,d.enabled AS device_enabled,
             d.revision AS device_revision,d.blocked AS device_blocked,d.license_blocked AS device_license_blocked,d.block_revision AS device_block_revision FROM integration_targets i
             JOIN devices d ON d.id=i.device_id'''
@@ -34,16 +36,18 @@ def validate(kind, value, old=None):
     if kind not in KINDS or not isinstance(value, dict):
         raise ValueError('Unbekannte Prüfungsart.')
     old = old or {}
+    if kind in SCHEMAS:
+        return validate_advanced(kind, value, old)
     common = {'host', 'port', 'fingerprint', 'username', 'password'}
     extras = {'tls': {'warn_days', 'critical_days', 'server_name'},
               'dns': {'query', 'record_type', 'expected'},
               'smtp': {'security'}, 'imap': {'security'}, 'pop3': {'security'},
-              'windows': {'basic', 'services', 'event_errors', 'event_minutes', 'cpu_warn', 'cpu_crit', 'ram_warn', 'ram_crit', 'disk_warn', 'disk_crit'},
+              'windows': {'basic', 'services', 'event_errors', 'event_minutes', 'disk_io', 'network', 'process_monitoring', 'processes', 'performance_counters', 'event_channels', 'event_ids', 'event_source', 'event_text', 'cpu_warn', 'cpu_crit', 'ram_warn', 'ram_crit', 'disk_warn', 'disk_crit'},
               'hyperv': {'expected_running'},
-              'vmware': {'hosts', 'vms', 'datastores', 'expected_running', 'cpu_warn', 'cpu_crit', 'ram_warn', 'ram_crit', 'disk_warn', 'disk_crit'},
+              'vmware': {'hosts', 'vms', 'datastores', 'expected_running', 'performance', 'performance_limit', 'events', 'event_minutes', 'cpu_warn', 'cpu_crit', 'ram_warn', 'ram_crit', 'disk_warn', 'disk_crit'},
               'redfish': {'system', 'thermal', 'power', 'storage'},
               'synology': {'version', 'community', 'auth_password', 'priv_password', 'auth_protocol', 'priv_protocol'},
-              'database': {'engine', 'database', 'security', 'connections_warn', 'connections_crit'},
+              'database': {'engine', 'database', 'security', 'connections_warn', 'connections_crit', 'replication', 'replication_warn', 'replication_crit'},
               'quality': {'packets', 'loss_warn', 'loss_crit', 'latency_warn', 'latency_crit', 'jitter_warn', 'jitter_crit'},
               'flow': {'window_minutes'},
               'printer': {'version', 'community', 'auth_password', 'priv_password', 'auth_protocol', 'priv_protocol', 'supply_warn', 'supply_crit'},
@@ -113,14 +117,19 @@ def validate(kind, value, old=None):
             cfg[stem+'_crit'] = integer(cfg.get(stem+'_crit', 95), 1, 100, 'Kritische Grenze')
             if cfg[stem+'_warn'] >= cfg[stem+'_crit']: raise ValueError('Warnwert muss kleiner als kritischer Wert sein.')
     if kind == 'windows':
+        from .windows_extended import validate_windows
+        validate_windows(cfg)
         flag('basic'); flag('event_errors', False)
         cfg['services'] = names(cfg.get('services', []), 'Windows-Dienste')
         if any("'" in n or '\\' in n for n in cfg['services']): raise ValueError('Ungültiger interner Windows-Dienstname.')
         cfg['event_minutes'] = integer(cfg.get('event_minutes', 15), 1, 1440, 'Ereigniszeitraum')
-        if not cfg['basic'] and not cfg['services'] and not cfg['event_errors']: raise ValueError('Mindestens einen Windows-Bereich auswählen.')
+        if not any(cfg[k] for k in ('basic','services','event_errors','disk_io','network','process_monitoring','performance_counters')): raise ValueError('Mindestens einen Windows-Bereich auswählen.')
     if kind in ('hyperv', 'vmware'):
         cfg['expected_running'] = names(cfg.get('expected_running', []), 'Dauerhaft laufende VMs')
     if kind == 'vmware':
+        flag('performance',False);flag('events',False)
+        cfg['performance_limit']=integer(cfg.get('performance_limit',50),1,200,'VMware-Leistungsgrenze')
+        cfg['event_minutes']=integer(cfg.get('event_minutes',15),1,1440,'Ereigniszeitraum')
         for key in ('hosts', 'vms', 'datastores'): flag(key)
         if not any(cfg[k] for k in ('hosts', 'vms', 'datastores')): raise ValueError('Mindestens einen VMware-Bereich wählen.')
         if cfg['expected_running'] and not cfg['vms']: raise ValueError('Für erwartete VMs die VM-Überwachung aktivieren.')
@@ -143,6 +152,10 @@ def validate(kind, value, old=None):
         cfg['supply_crit'] = integer(value.get('supply_crit', 5), 0, 98, 'Verbrauchsmaterial kritisch')
         if cfg['supply_crit'] >= cfg['supply_warn']: raise ValueError('Kritischer Restbestand muss kleiner als die Warngrenze sein.')
     if kind == 'database':
+        flag('replication', False)
+        cfg['replication_warn'] = integer(cfg.get('replication_warn',30),1,86400,'Replikationswarnung')
+        cfg['replication_crit'] = integer(cfg.get('replication_crit',120),2,86400,'Replikation kritisch')
+        if cfg['replication_warn'] >= cfg['replication_crit']: raise ValueError('Warnwert muss kleiner als kritischer Wert sein.')
         cfg['engine'] = cfg.get('engine', 'mysql')
         if cfg['engine'] not in ('mysql', 'postgresql'): raise ValueError('MariaDB/MySQL oder PostgreSQL auswählen.')
         cfg['database'] = string(cfg.get('database', 'postgres' if cfg['engine']=='postgresql' else ''), 'Datenbankname', 128)
@@ -172,13 +185,24 @@ def validate(kind, value, old=None):
 
 def active_metric(kind,cfg,key):
     if kind=='windows':
+        if key.startswith('diskio:') or key=='missing:Windows-Festplattenleistung': return cfg.get('disk_io',False)
+        if key.startswith('winnet:') or key=='missing:Windows-Netzwerk': return cfg.get('network',False)
+        if key.startswith('process:'):
+            selected={n.lower()[:-4] if n.lower().endswith('.exe') else n.lower() for n in cfg.get('processes',[])}
+            return cfg.get('process_monitoring',False) and (not selected or key.split(':')[1].lower() in selected)
+        if key=='missing:Windows-Prozesse': return cfg.get('process_monitoring',False)
+        if key.startswith('counter:'): return key.split(':')[1]+'.'+key.rsplit(':',1)[-1] in cfg.get('performance_counters',[])
+        if key.startswith('missing:Win32_PerfFormattedData_'):return key[8:] in cfg.get('performance_counters',[])
         if key.startswith(('cpu','ram','disk:')) or key in ('missing:CPU','missing:Arbeitsspeicher','missing:Laufwerke'): return cfg['basic']
         if key.startswith('service:'): return key[8:] in cfg['services']
         if key=='missing:Windows-Dienste': return bool(cfg['services'])
-        if key.startswith('events:') or key=='missing:Ereignisprotokolle': return cfg['event_errors']
+        if key.startswith('events:'): return cfg['event_errors'] and key[7:] in cfg.get('event_channels',['System','Application'])
+        if key=='missing:Ereignisprotokolle': return cfg['event_errors']
     if kind=='redfish':
         return cfg.get(key.split(':',1)[0],True)
     if kind=='vmware':
+        if key.startswith('perf:') or key.startswith('missing:perf:') or key=='missing:performance': return cfg.get('performance',False)
+        if key=='vmware:events' or key=='missing:events': return cfg.get('events',False)
         for prefix,flag in [('HostSystem:','hosts'),('VirtualMachine:','vms'),('Datastore:','datastores')]:
             if key.startswith(prefix): return cfg[flag]
     if key.startswith('missing-vm:'): return key[11:] in cfg.get('expected_running',[])
@@ -195,6 +219,7 @@ class IntegrationStore:
               interval INTEGER NOT NULL DEFAULT 60,timeout INTEGER NOT NULL DEFAULT 30,threshold INTEGER NOT NULL DEFAULT 3,
               revision INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'pending',message TEXT NOT NULL DEFAULT '',
               failures INTEGER NOT NULL DEFAULT 0,last_checked REAL,next_check REAL NOT NULL DEFAULT 0);
+            CREATE TABLE IF NOT EXISTS integration_counter_baselines(target_id INTEGER NOT NULL REFERENCES integration_targets(id) ON DELETE CASCADE,metric_key TEXT NOT NULL,time REAL NOT NULL,value REAL NOT NULL,epoch TEXT NOT NULL,PRIMARY KEY(target_id,metric_key));
             CREATE TABLE IF NOT EXISTS integration_metrics(
               id INTEGER PRIMARY KEY AUTOINCREMENT,target_id INTEGER NOT NULL REFERENCES integration_targets(id) ON DELETE CASCADE,
               metric_key TEXT NOT NULL,label TEXT NOT NULL,value REAL,unit TEXT NOT NULL,status TEXT NOT NULL,
@@ -214,6 +239,7 @@ class IntegrationStore:
             grouped.setdefault(m['target_id'], []).append(m)
         for row in rows:
             cfg = json.loads(row['config'])
+            row['saved_credentials'] = [key for key in SECRETS if cfg.get(key)]
             row['has_password'] = bool(cfg.get('password'))
             row['has_community'] = bool(cfg.get('community'))
             for key in SECRETS:
@@ -252,9 +278,13 @@ class IntegrationStore:
                     changed = True
                     previous = json.loads(old['config']); current = json.loads(v['config'])
                     # A different endpoint/question is a new measurement series; threshold changes preserve it.
-                    identity_fields = ('host','port','query','record_type','server_name','username','engine','database','window_minutes')
+                    identity_fields = ('host','port','query','record_type','server_name','username','engine','database','window_minutes','expression','sources','command','resource_id','subscription_id','namespace')
                     if any(previous.get(k)!=current.get(k) for k in identity_fields):
                         db.execute('DELETE FROM integration_metrics WHERE target_id=?',(ident,))
+                        db.execute('DELETE FROM integration_counter_baselines WHERE target_id=?',(ident,))
+                    if v['kind'] in SCHEMAS and previous!=current:
+                        db.execute('UPDATE integration_metrics SET active=0 WHERE target_id=?',(ident,))
+                        db.execute('DELETE FROM integration_counter_baselines WHERE target_id=?',(ident,))
                     db.execute('UPDATE integration_targets SET '+','.join(k+'=?' for k in v)+
                                ",revision=revision+1,status='pending',failures=0,next_check=0 WHERE id=?",tuple(v.values())+(ident,))
             else:
@@ -273,13 +303,15 @@ class IntegrationStore:
             db.execute('UPDATE devices SET revision=revision+1 WHERE id=?',(device['id'],))
         return saved_order
 
-    def record_integration(self, target, result):
-        now=time.time()
-        with self.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+    def record_integration(self, target, result, _db=None, _time=None):
+        now=time.time() if _time is None else _time
+        with self.connect(_db) as db:
+            if _db is None: db.execute('BEGIN IMMEDIATE')
             self.refresh_license_access(db)
             current=db.execute(SELECT+' WHERE i.id=?',(target['id'],)).fetchone()
             if not current or not current['enabled'] or not current['device_enabled'] or current['device_license_blocked'] or current['device_blocked'] or current['device_block_revision']!=target.get('device_block_revision',0) or current['revision']!=target['revision'] or current['device_revision']!=target['device_revision']:
+                return
+            if current['last_checked'] is not None and now < current['last_checked']:
                 return
             if current['kind']=='flow':
                 db.execute('UPDATE integration_metrics SET active=0 WHERE target_id=?',(target['id'],))
@@ -305,6 +337,15 @@ class IntegrationStore:
                 db.execute('DELETE FROM integration_metrics WHERE id=?',(old['availability']['id'],))
             rank={'up':0,'warning':1,'unknown':2,'critical':3}
             for m in metrics:
+                if m.get('counter') and m.get('value') is not None:
+                    from .integration_common import metric as make_metric
+                    raw=m['value'];epoch=str(m.get('counter_epoch',''))
+                    prior=db.execute('SELECT * FROM integration_counter_baselines WHERE target_id=? AND metric_key=?',(target['id'],m['key'])).fetchone()
+                    value=None
+                    if prior and epoch==prior['epoch'] and 0<now-prior['time']<=max(current['interval']*3,120) and raw>=prior['value']:
+                        value=(raw-prior['value'])/(now-prior['time'])
+                    db.execute('INSERT INTO integration_counter_baselines VALUES(?,?,?,?,?) ON CONFLICT(target_id,metric_key) DO UPDATE SET time=excluded.time,value=excluded.value,epoch=excluded.epoch',(target['id'],m['key'],now,raw,epoch))
+                    m.update(make_metric(m['key'],m['label'],value,m['unit'],warn=m.get('warn'),critical=m.get('critical'),message='' if value is not None else 'Warte auf eine zweite gültige Zählermessung.'))
                 v=m['value']
                 if v is not None and (not isinstance(v,(int,float)) or not math.isfinite(v)): m['value']=None;m['status']='unknown'
                 vals=(target['id'],m['key'],m['label'],m['value'],m['unit'],m['status'],m.get('message',''),m.get('warn'),m.get('critical'),int(bool(m.get('low'))))
@@ -326,8 +367,9 @@ class IntegrationStore:
             db.execute('UPDATE integration_targets SET status=?,message=?,failures=?,last_checked=?,next_check=? WHERE id=?',
                        (status,message,failures,now,now+delay,target['id']))
             details='\n'.join(m['label']+': '+(str(m['value'])+' '+m.get('unit','') if m['value'] is not None else m.get('message','')) for m in metrics if m['status'] not in ('up','pending'))
-            self.record_notification(db, 'integration', current, status, message, now,
-                provisional=(result['kind']!='ok' and failures<current['threshold']),details=details)
+            if _time is None or time.time()-now <= max(300,current['interval']*3):
+                self.record_notification(db, 'integration', current, status, message, now,
+                    provisional=(result['kind']!='ok' and failures<current['threshold']),details=details)
             if status!=current['status']:
                 db.execute('INSERT INTO events(time,name,kind,message) VALUES(?,?,?,?)',(now,current['device_name']+' · '+current['name'],status,message))
 

@@ -2,7 +2,7 @@
 import math
 import time
 
-PERIODS = {'1h': 3600, '6h': 21600, '24h': 86400, '7d': 604800, '30d': 2592000}
+PERIODS = {'1h': 3600, '6h': 21600, '24h': 86400, '7d': 604800, '30d': 2592000, '90d': 7776000, '1y':31536000, '2y':63072000}
 SERIES = {
     'history': ('samples', 'device_id', 'rtt', 'kind', 'time,kind,rtt'),
     'service/history': ('service_samples', 'service_id', 'rtt', 'kind', 'time,kind,rtt,message,status_code'),
@@ -25,6 +25,11 @@ def series(store, route, ident, period=None, now=None):
     if period not in PERIODS:
         raise ValueError('Unbekannter Zeitraum.')
     end = float(time.time() if now is None else now)
+    if PERIODS[period] >= 604800:
+        from .retention import long_series
+        result=long_series(store,route,ident,PERIODS[period],end)
+        result['period']=period
+        return result
     start = end - PERIODS[period]
     bucket = max(1, math.ceil(PERIODS[period] / 360))
     extra = ',AVG(total) AS total,AVG(used) AS used,AVG(free) AS free' if value == 'percent' else ''

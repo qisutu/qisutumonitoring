@@ -22,7 +22,7 @@ class VSphere:
     def connect(self):
         result=self.call('RetrieveServiceContent','<_this type="ServiceInstance">ServiceInstance</_this>')
         for n in result.iter():
-            if local(n.tag) in ('sessionManager','propertyCollector','rootFolder','viewManager') and n.text:
+            if local(n.tag) in ('sessionManager','propertyCollector','rootFolder','viewManager','perfManager','eventManager') and n.text:
                 self.refs[local(n.tag)]=(n.attrib.get('type',''),n.text)
         self.call('Login',self.reference('sessionManager')+'<userName>'+escape(self.cfg['username'])+'</userName><password>'+escape(self.cfg['password'])+'</password>')
         self.logged_in=True
@@ -110,6 +110,11 @@ def vmware_check(cfg,timeout):
         types=[typ for flag,typ in [('hosts','HostSystem'),('vms','VirtualMachine'),('datastores','Datastore')] if cfg[flag]]
         objects=client.objects(types)
         metrics,inventory=parse_objects(objects,cfg)
+        from .vmware_extended import performance, events
+        for flag, action in [('performance',performance),('events',events)]:
+            if cfg.get(flag):
+                try:metrics.extend(action(client,objects,cfg) if flag=='performance' else action(client,cfg))
+                except CheckFailure as exc:metrics.append(metric('missing:'+flag,'VMware · '+flag,message=str(exc)))
         if not metrics:raise CheckFailure('Keine überwachten vSphere-Objekte sichtbar. Berechtigungen und Auswahl prüfen.')
         return metrics,inventory
     finally:client.close()

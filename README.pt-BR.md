@@ -26,6 +26,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Qisutu Monitoring
 
+## Pacote ampliado
+
+Este pacote adiciona desempenho do Windows, logs, detalhes SMART, contadores VMware, replicação de bancos e SQL Server, cenários web, perfis de fabricantes, verificações de nuvem/contêineres, métricas personalizadas, dados de longo prazo e coletores distribuídos. Padrão: 30 dias de dados brutos e 730 dias de dados horários; ambos configuráveis. Os novos formulários estão disponíveis nos onze idiomas. Consulte [configuração e escopo (alemão)](docs/AUSBAU.md) para requisitos e limites. A equivalência completa com Zabbix não foi alcançada.
+
 O Qisutu Monitoring é um sistema independente para monitorar dispositivos,
 servidores, redes e serviços. Utiliza Python, o servidor web Tornado incluído e
 SQLite. A administração é feita pelo navegador; a configuração e as medições

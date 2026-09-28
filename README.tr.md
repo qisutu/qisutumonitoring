@@ -26,6 +26,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Qisutu Monitoring
 
+## Genişletilmiş paket
+
+Bu paket Windows performansı, günlükler, SMART ayrıntıları, VMware sayaçları, veritabanı çoğaltması ve SQL Server, web senaryoları, üretici profilleri, bulut/konteyner kontrolleri, özel ölçümler, uzun dönem verileri ve dağıtık toplayıcılar ekler. Varsayılan: 30 gün ham veri ve 730 gün saatlik veri; ikisi de ayarlanabilir. Yeni formlar on bir dilde kullanılabilir. Gereksinimler ve sınırlar için [kurulum ve kapsam (Almanca)](docs/AUSBAU.md) belgesine bakın. Zabbix ile tam işlev eşitliğine ulaşılmamıştır.
+
 Qisutu Monitoring; cihazları, sunucuları, ağları ve hizmetleri izlemek için
 bağımsız olarak kurulabilen bir sistemdir. Python, pakete dahil Tornado web
 sunucusu ve SQLite kullanır. Tarayıcı üzerinden yönetilir; yapılandırma ve

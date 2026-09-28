@@ -61,7 +61,7 @@ if command -v smartctl >/dev/null 2>&1; then
  for d in /sys/block/sd* /sys/block/nvme*n*; do
   [ -d "$d" ] || continue
   name=${d##*/}; printf 'NM_SMART_BEGIN|%s\n' "$name"
-  smartctl -H -j "/dev/$name" 2>/dev/null
+  smartctl -a -j "/dev/$name" 2>/dev/null
   printf '\nNM_SMART_END\n'
  done
 else printf 'NM_NO_SMART\n'; fi
@@ -152,6 +152,8 @@ def parse_ssh(text,target):
         name,body=found.groups()
         try: data=json.loads(body)
         except ValueError:data={}
+        from .smart_extended import smart_values
+        result['extended'].extend(smart_values(name,data))
         passed=data.get('smart_status',{}).get('passed')
         messages='; '.join(str(m.get('string','')) for m in data.get('messages',[]))[:400]
         result['extended'].append(metric('smart',name,'SMART Gesamtzustand',1 if passed is True else 0 if passed is False else None,'',

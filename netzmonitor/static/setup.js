@@ -67,7 +67,7 @@ async function saveSetup(){
  // Freeze edited fields while saving so a delayed response cannot discard new edits.
  const frozen=[...$('view-setup').querySelectorAll('input,select,textarea,button')].filter(el=>!el.disabled);frozen.forEach(el=>el.disabled=true);
  try{
-  const payload={request_id:crypto.randomUUID(),id:setupDevice.id,config_token:setupDevice.config_token,name:$('setup-name').value.trim(),address,services,resource,integrations,dependency_service_id:$('setup-dependency').value,group_ids:readSetupGroups()};
+  const payload={request_id:crypto.randomUUID(),id:setupDevice.id,config_token:setupDevice.config_token,name:$('setup-name').value.trim(),address,services,resource,integrations,collector_id:$('setup-collector').value,dependency_service_id:$('setup-dependency').value,group_ids:readSetupGroups()};
   await api('device/configure',payload);setupDirty=false;
   state=await api('state');indexState();const id=setupDevice.id;setupDevice=null;openSetup(id);$('setup-save-state').textContent=T('Alle Einstellungen gespeichert.');toast(T('Gerät und Prüfungen gespeichert.'));
  }catch(e){$('setup-error').textContent=e.message;$('setup-error').scrollIntoView({block:'center'});}

@@ -59,7 +59,7 @@ function statusOf(d) {
 }
 function badge(status, title='') { return H`<span class="badge ${esc(status)}" title="${esc(title)}">${esc(labels[status] || status)}</span>`; }
 function toast(text) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{$('toast').hidden=true;},6000); }
-function loggedOut() { if(typeof clearNotifications==='function')clearNotifications(); if(typeof clearLicense==='function')clearLicense(); if(typeof clearConnections==='function')clearConnections(); if(typeof clearSetup==='function')clearSetup();csrf=''; currentAgent=null; if(typeof clearAgents==='function')clearAgents(); settingsLoaded=false; $('login').hidden=false; $('application').hidden=true; document.querySelectorAll('dialog[open]').forEach(d=>d.close()); }
+function loggedOut() { if($('collector-created')){$('collector-created').replaceChildren();$('collector-created').hidden=true;} if($('collector-form'))$('collector-form').reset(); if(typeof clearNotifications==='function')clearNotifications(); if(typeof clearLicense==='function')clearLicense(); if(typeof clearConnections==='function')clearConnections(); if(typeof clearSetup==='function')clearSetup();csrf=''; currentAgent=null; if(typeof clearAgents==='function')clearAgents(); settingsLoaded=false; $('login').hidden=false; $('application').hidden=true; document.querySelectorAll('dialog[open]').forEach(d=>d.close()); }
 async function api(path, data) {
  const response = await fetch('/api/'+path, {method:data === undefined?'GET':'POST', headers:data === undefined?{}:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:data === undefined?undefined:JSON.stringify(data),cache:'no-store'});
  const result = await response.json();

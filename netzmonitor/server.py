@@ -44,11 +44,24 @@ class WebApp(tornado.web.Application):
         self.agents = Agents(self.store, read_config(data))
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix='api')
         self.inflight = 0
-        super().__init__([(r'/api/(.*)', API), (r'/(.*)', Asset)], debug=False,
+        super().__init__([(r'/collector/v1/(config|results)/([0-9]+)', CollectorAPI), (r'/api/(.*)', API), (r'/(.*)', Asset)], debug=False,
                          compress_response=True, max_body_size=2097152, autoreload=False)
 
     def dispatch(self, method, route, body, query):
         store = self.store
+        if method == 'POST' and route == 'collector/save':
+            from .collectors import save
+            return save(store,body)
+        if method == 'GET' and route == 'advanced/catalog':
+            from .advanced_config import SCHEMAS
+            return SCHEMAS
+        if method == 'POST' and route == 'retention/save':
+            limits={'history_days':(1,365),'trend_days':(30,3650),'service_workers':(1,64),'resource_workers':(1,32),'integration_workers':(1,32)}
+            values={key:integer(body.get(key),*bounds,key) for key,bounds in limits.items()}
+            if values['trend_days']<values['history_days']:raise ValueError('Langzeitwerte mindestens so lange wie Einzelmessungen aufbewahren.')
+            with store.connect() as db:
+                for key,value in values.items():db.execute('UPDATE settings SET value=? WHERE key=?',(json.dumps(value),key))
+            return {'ok':True}
         if method == 'GET' and route == 'notifications':
             return store.notification_state()
         if method == 'POST' and route == 'notifications/save':
@@ -137,7 +150,11 @@ class WebApp(tornado.web.Application):
             target=store.integration_value(body,rows[0],old)
             target['diagnostic'] = True
             target['device_id']=did
-            result=self.engine.flow_collector.test(target) if target['kind']=='flow' else probe_integration(target)
+            if target['kind']=='calculated':
+                from .calculated import calculated
+                result=calculated(store,json.loads(target['config']))
+            else:
+                result=self.engine.flow_collector.test(target) if target['kind']=='flow' else probe_integration(target)
             store.require_device_license(did)
             return result
         if route == 'integration/fingerprint':
@@ -146,7 +163,7 @@ class WebApp(tornado.web.Application):
             from .core import address
             from .integrations import probe_integration
             kind = body.get('kind')
-            if kind not in ('tls','windows','hyperv','vmware','redfish','smtp','imap','pop3'):
+            if kind not in ('tls','windows','hyperv','vmware','redfish','smtp','imap','pop3','webscenario','httpjson','docker','kubernetes','prometheus'):
                 raise ValueError('Diese Prüfung verwendet kein TLS.')
             security = body.get('security','tls')
             if security not in ('tls','starttls'): raise ValueError('Zuerst TLS oder STARTTLS auswählen.')
@@ -260,8 +277,43 @@ class Base(tornado.web.RequestHandler):
                                         503: 'Server ausgelastet. Bitte erneut versuchen.'}.get(status_code, 'Interner Fehler. Details stehen im Serverprotokoll.')})
 
 
+class CollectorAPI(Base):
+    def authorized(self, ident):
+        from .collectors import authenticate
+        if self.request.protocol != 'https' and self.request.remote_ip not in ('127.0.0.1','::1'):
+            raise tornado.web.HTTPError(403)
+        auth=self.request.headers.get('Authorization','')
+        if not auth.startswith('Bearer ') or not authenticate(self.application.store,int(ident),auth[7:]):
+            raise tornado.web.HTTPError(401)
+
+    async def get(self, route, ident):
+        self.authorized(ident)
+        if route!='config':raise tornado.web.HTTPError(404)
+        from .collectors import configuration
+        try:
+            result=await asyncio.get_running_loop().run_in_executor(self.application.executor,configuration,self.application.store,int(ident))
+            self.finish(result)
+        except ValueError as exc:self.set_status(400);self.finish({'error':str(exc)})
+
+    async def post(self, route, ident):
+        self.authorized(ident)
+        if route!='results':raise tornado.web.HTTPError(404)
+        from .collectors import ingest
+        try:
+            body=json.loads(self.request.body)
+            if not isinstance(body,dict):raise ValueError('Ungültige Anfrage.')
+            result=await asyncio.get_running_loop().run_in_executor(self.application.executor,ingest,self.application.store,int(ident),body)
+            self.finish(result)
+        except (ValueError,KeyError,TypeError) as exc:self.set_status(400);self.finish({'error':'Ungültige Messdaten.'})
+
+
 class Asset(Base):
     def get(self, path):
+        if path == 'advanced-catalog.js':
+            from .advanced_config import SCHEMAS
+            self.set_header('Content-Type','text/javascript; charset=utf-8')
+            self.finish('window.QISUTU_CHECKS='+json.dumps(SCHEMAS,ensure_ascii=False)+';')
+            return
         if path == 'locale.js':
             self.set_header('Content-Type', 'text/javascript; charset=utf-8')
             self.finish('window.QISUTU_LOCALE = ' + json.dumps(catalog(self.language()), ensure_ascii=False) + ';')
@@ -270,7 +322,7 @@ class Asset(Base):
             self.set_header('Content-Type', 'application/json; charset=utf-8')
             self.finish(catalog(path[10:-5]))
             return
-        names = {'i18n.js': ('i18n.js', 'text/javascript'), 'agents.js': ('agents.js', 'text/javascript'),
+        names = {'advanced.js':('advanced.js','text/javascript'),'advanced.css':('advanced.css','text/css'),'i18n.js': ('i18n.js', 'text/javascript'), 'agents.js': ('agents.js', 'text/javascript'),
                  '': ('index.html', 'text/html'), 'index.html': ('index.html', 'text/html'),
                  'app.js': ('app.js', 'text/javascript'), 'resources.js': ('resources.js', 'text/javascript'), 'style.css': ('style.css', 'text/css'),
                  'setup.js': ('setup.js', 'text/javascript'), 'ui.js': ('ui.js', 'text/javascript'), 'charts.js': ('charts.js', 'text/javascript'),

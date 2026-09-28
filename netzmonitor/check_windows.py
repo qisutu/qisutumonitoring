@@ -91,14 +91,10 @@ def windows_check(cfg, timeout):
                 metrics.append(metric('service:'+name,'Dienst '+name,int(running),'','up' if running else 'critical',
                                       row.get('State','Unbekannt') if row else 'Dienst nicht gefunden. Internen Dienstnamen prüfen.'))
         area('Windows-Dienste',services)
+    from .windows_extended import performance, events
+    metrics.extend(performance(client, cfg))
     if cfg['event_errors']:
-        def events():
-            since=(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=cfg['event_minutes'])).strftime('%Y%m%d%H%M%S.000000+000')
-            for log in ('System','Application'):
-                rows=client.query("SELECT RecordNumber FROM Win32_NTLogEvent WHERE Logfile='%s' AND EventType=1 AND TimeGenerated>='%s'" % (log,since),limit=1000)
-                metrics.append(metric('events:'+log,'Fehlerereignisse · '+log,len(rows),'Ereignisse','warning' if rows else 'up',
-                    ('Mindestens ' if len(rows)==1000 else '')+str(len(rows))+' Fehler in den letzten '+str(cfg['event_minutes'])+' Minuten.'))
-        area('Ereignisprotokolle',events)
+        area('Ereignisprotokolle', lambda: metrics.extend(events(client, cfg)))
     return metrics
 
 

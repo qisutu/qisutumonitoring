@@ -169,6 +169,10 @@ class Store(ServiceStore, ResourceStore, FleetStore, ExtendedStore, IntegrationS
         self.init_license()
         self.migrate_device_pings()
         self.init_notifications()
+        from .retention import init_retention
+        init_retention(self)
+        from .collectors import init_collectors
+        init_collectors(self)
         with self.connect() as db:
             if not db.execute("SELECT 1 FROM schema_migrations WHERE name='tls-daily-default'").fetchone():
                 db.execute("""UPDATE integration_targets SET interval=86400,revision=revision+1,
@@ -297,7 +301,8 @@ class Store(ServiceStore, ResourceStore, FleetStore, ExtendedStore, IntegrationS
         from .setup import configuration_token
         for device in devices:
             device['config_token'] = configuration_token(device, [s for s in services if s['device_id']==device['id']], [r for r in resources if r['device_id']==device['id']])
-        return {'version': VERSION, 'time': now, 'settings': self.settings(),
+        from .collectors import state as collector_state
+        return {**collector_state(self), 'version': VERSION, 'time': now, 'settings': self.settings(),
                 'license': self.license_status(),
                 'devices': devices, 'services': services, 'resources': resources, 'integrations': integrations,
                 'extended': self.extended_state(), **self.fleet_state(), **self.connection_state(),
@@ -319,11 +324,11 @@ class Engine:
         from .flow import FlowCollector
         self.flow_collector = FlowCollector(store)
         self.notifications = NotificationWorker(store)
-        self.integration_pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix='integration')
+        self.integration_pool = concurrent.futures.ThreadPoolExecutor(max_workers=store.settings().get('integration_workers',4), thread_name_prefix='integration')
         self.resource_probe = resource_probe
-        self.resource_pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="resources")
+        self.resource_pool = concurrent.futures.ThreadPoolExecutor(max_workers=store.settings().get("resource_workers",4), thread_name_prefix="resources")
         self.service_probe = service_probe
-        self.service_pool = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix='service')
+        self.service_pool = concurrent.futures.ThreadPoolExecutor(max_workers=store.settings().get('service_workers',8), thread_name_prefix='service')
         self.scan_cancel = threading.Event()
         self.scan_thread = None
         self.scan_running = False
@@ -356,7 +361,12 @@ class Engine:
     def check_integration(self, target):
         try:
             if not self.store.license_allows(target['device_id']):return
-            self.store.record_integration(target, self.flow_collector.probe(target) if target['kind']=='flow' else self.integration_probe(target))
+            if target['kind']=='calculated':
+                from .calculated import calculated
+                result=calculated(self.store,json.loads(target['config']))
+            else:
+                result=self.flow_collector.probe(target) if target['kind']=='flow' else self.integration_probe(target)
+            self.store.record_integration(target,result)
         except Exception:
             LOG.exception('Zusätzliche Prüfung fehlgeschlagen: %s', target['id'])
         finally:
@@ -393,21 +403,21 @@ class Engine:
             try:
                 self.heartbeat = timestamp()
                 self.store.refresh_dependencies()
-                for service in self.store.rows(SERVICE_SELECT + ' WHERE s.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND s.next_check<=? ORDER BY s.next_check,s.id LIMIT 32', (timestamp(),)):
+                for service in self.store.rows(SERVICE_SELECT + ' WHERE s.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND d.id NOT IN (SELECT device_id FROM collector_devices) AND s.next_check<=? ORDER BY s.next_check,s.id LIMIT 32', (timestamp(),)):
                     with self.lock:
-                        if service['id'] in self.active_services or len(self.active_services) >= 8:
+                        if service['id'] in self.active_services or len(self.active_services) >= self.service_pool._max_workers:
                             continue
                         self.active_services.add(service['id'])
                     self.service_pool.submit(self.check_service, service)
-                for target in self.store.rows(RESOURCE_SELECT + ' WHERE r.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND r.next_check<=? ORDER BY r.next_check,r.id LIMIT 16', (timestamp(),)):
+                for target in self.store.rows(RESOURCE_SELECT + ' WHERE r.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND d.id NOT IN (SELECT device_id FROM collector_devices) AND r.next_check<=? ORDER BY r.next_check,r.id LIMIT 16', (timestamp(),)):
                     with self.lock:
-                        if target['id'] in self.active_resources or len(self.active_resources) >= 4:
+                        if target['id'] in self.active_resources or len(self.active_resources) >= self.resource_pool._max_workers:
                             continue
                         self.active_resources.add(target['id'])
                     self.resource_pool.submit(self.check_resource, target)
-                for target in self.store.rows(INTEGRATION_SELECT + ' WHERE i.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND i.next_check<=? ORDER BY i.next_check,i.id LIMIT 16', (timestamp(),)):
+                for target in self.store.rows(INTEGRATION_SELECT + ' WHERE i.enabled=1 AND d.enabled=1 AND d.blocked=0 AND d.license_blocked=0 AND (i.kind="calculated" OR d.id NOT IN (SELECT device_id FROM collector_devices)) AND i.next_check<=? ORDER BY i.next_check,i.id LIMIT 16', (timestamp(),)):
                     with self.lock:
-                        if target['id'] in self.active_integrations or len(self.active_integrations) >= 4:
+                        if target['id'] in self.active_integrations or len(self.active_integrations) >= self.integration_pool._max_workers:
                             continue
                         self.active_integrations.add(target['id'])
                     self.integration_pool.submit(self.check_integration, target)
@@ -418,16 +428,8 @@ class Engine:
                         except ValueError:
                             pass
                 if timestamp() - cleaned > 3600:
-                    with self.store.connect() as db:
-                        cutoff = timestamp() - 30 * 86400
-                        db.execute('DELETE FROM samples WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM integration_samples WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM service_samples WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM resource_samples WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM extended_samples WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM events WHERE time<?', (cutoff,))
-                        db.execute('DELETE FROM discoveries WHERE last_seen<?', (cutoff,))
-                        db.execute("DELETE FROM scans WHERE started<? AND status!='running'", (cutoff,))
+                    from .retention import housekeeping
+                    housekeeping(self.store)
                     cleaned = timestamp()
             except Exception:
                 LOG.exception('Fehler im Hintergrunddienst')

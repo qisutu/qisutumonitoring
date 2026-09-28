@@ -1,0 +1,11 @@
+.advanced-fields { align-items:start; }
+.advanced-fields>.schema-collection { grid-column:1/-1; min-width:0; }
+.schema-row { padding:14px; margin:10px 0; border:1px solid var(--border,#d7e2e7); border-radius:8px; background:var(--surface,#fff); }
+.schema-row .integration-grid { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+.schema-field textarea { width:100%; min-height:85px; resize:vertical; }
+.schema-collection>.secondary { margin-top:8px; }
+.collector-list-row { display:flex; flex-wrap:wrap; gap:8px 14px; padding:10px 0; border-bottom:1px solid #dde6e9; }
+.collector-list-row small { flex-basis:100%; color:#55707b; }
+#collector-created { margin:14px 0; padding:14px; border:1px solid #015068; border-radius:8px; }
+.integration-body fieldset { border:1px solid #dde6e9; border-radius:8px; padding:14px; margin:12px 0; min-width:0; }
+.integration-body legend { color:#015068; font-weight:600; }

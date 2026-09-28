@@ -27,6 +27,7 @@ if ($HyperV) { $namespaces += 'root\virtualization\v2' }
 if (-not (Get-Command Get-LocalGroup -ErrorAction SilentlyContinue)) { throw 'Lokale Gruppen fehlen. Auf Domaenencontrollern Zugang manuell durch die Administration einrichten.' }
 $null = Get-LocalGroup -SID 'S-1-5-32-580'
 $null = Get-LocalGroup -SID 'S-1-5-32-573'
+$null = Get-LocalGroup -SID 'S-1-5-32-558'
 # Vorab pruefen, damit eine fehlende Hyper-V-Rolle keine halbe Einrichtung erzeugt.
 foreach ($namespace in $namespaces) {
     $null = Get-WmiObject -Namespace $namespace -Class __SystemSecurity
@@ -65,9 +66,10 @@ function Add-ReadGroup([string]$GroupSID) {
         Add-LocalGroupMember -Group $group.Name -Member $qualifiedName
     }
 }
-# Sprachunabhaengig: Remote Management Users und Event Log Readers.
+# Sprachunabhaengig: Remote Management Users, Event Log Readers und Performance Monitor Users.
 Add-ReadGroup 'S-1-5-32-580'
 Add-ReadGroup 'S-1-5-32-573'
+Add-ReadGroup 'S-1-5-32-558'
 foreach ($namespace in $namespaces) {
     $security = Get-WmiObject -Namespace $namespace -Class __SystemSecurity
     $result = $security.GetSecurityDescriptor()

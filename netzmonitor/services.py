@@ -140,14 +140,16 @@ class ServiceStore:
             else:
                 raise ValueError('Unbekannte Dienstaktion.')
 
-    def record_service(self, service, result):
-        now = time.time()
-        with self.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+    def record_service(self, service, result, _db=None, _time=None):
+        now = time.time() if _time is None else _time
+        with self.connect(_db) as db:
+            if _db is None: db.execute('BEGIN IMMEDIATE')
             self.refresh_license_access(db)
             current = db.execute(SERVICE_SELECT + ' WHERE s.id=?', (service['id'],)).fetchone()
             if (not current or not current['enabled'] or not current['device_enabled'] or current['device_license_blocked'] or current['device_blocked'] or
                     current['device_block_revision'] != service.get('device_block_revision',0) or current['revision'] != service['revision'] or current['device_revision'] != service['device_revision']):
+                return
+            if current['last_checked'] is not None and now < current['last_checked']:
                 return
             failures = current['failures']
             if result['kind'] == 'up':
@@ -162,8 +164,9 @@ class ServiceStore:
                        (status, failures, result['rtt'], result['message'], now, last_seen, result.get('status_code'), now + current['interval'], service['id']))
             db.execute('INSERT INTO service_samples(service_id,time,kind,rtt,message,status_code) VALUES(?,?,?,?,?,?)',
                        (service['id'], now, result['kind'], result['rtt'], result['message'], result.get('status_code')))
-            self.record_notification(db, 'service', current, status, result['message'], now,
-                provisional=(status == 'warning' and result['kind'] == 'down'))
+            if _time is None or time.time()-now <= max(300,current['interval']*3):
+                self.record_notification(db, 'service', current, status, result['message'], now,
+                    provisional=(status == 'warning' and result['kind'] == 'down'))
             if service['type'] == 'ping' and result.get('ip'):
                 db.execute('UPDATE devices SET last_ip=? WHERE id=?', (result['ip'], current['device_id']))
             if current['status'] != status:

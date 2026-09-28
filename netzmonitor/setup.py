@@ -92,6 +92,9 @@ def save_configuration(store, data):
         if 'integrations' in data:
             updated = db.execute('SELECT * FROM devices WHERE id=?', (ident,)).fetchone()
             store.save_integrations(db, updated, data['integrations'])
+        if 'collector_id' in data:
+            from .collectors import assign
+            assign(store, db, ident, data['collector_id'])
         if 'dependency_service_id' in data:
             store.save_dependency(db, ident, data['dependency_service_id'])
         if request_id:

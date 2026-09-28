@@ -108,7 +108,7 @@ def parse_metrics(output):
     return metrics
 
 
-def probe_ssh(target):
+def probe_ssh(target, script=None):
     binary=shutil.which('ssh')
     if not binary:
         return dict(kind='error',metrics=[],message='Auf dem Monitoring-Server fehlt der OpenSSH-Client. Installer erneut ausführen.')
@@ -139,7 +139,7 @@ def probe_ssh(target):
             output=bytearray()
             try:
                 from .collect_extended import ssh_script
-                proc.stdin.write((COLLECTOR+ssh_script(target)).encode());proc.stdin.close()
+                proc.stdin.write((script if script is not None else COLLECTOR+ssh_script(target)).encode());proc.stdin.close()
                 with selectors.DefaultSelector() as selector:
                     selector.register(proc.stdout,selectors.EVENT_READ)
                     while True:
@@ -157,7 +157,7 @@ def probe_ssh(target):
                 proc.wait();proc.stdout.close()
                 if not proc.stdin.closed: proc.stdin.close()
             text=output.decode('utf-8',errors='replace')
-            if proc.returncode or 'NETZMONITOR_RESOURCES_1\n' not in text:
+            if proc.returncode or (script is None and 'NETZMONITOR_RESOURCES_1\n' not in text):
                 if 'Host key verification failed' in text or 'HOST IDENTIFICATION HAS CHANGED' in text:
                     message='SSH-Server-Schlüssel stimmt nicht überein. Unter Bearbeiten den Schlüssel prüfen und gegebenenfalls neu bestätigen.'
                 elif 'Permission denied' in text or 'invalid format' in text or 'Load key' in text:
@@ -167,6 +167,8 @@ def probe_ssh(target):
                 else:
                     message='SSH-Abfrage fehlgeschlagen. Erreichbarkeit, Zugang und Berechtigung für sh, awk und df prüfen.'
                 return dict(kind='down',metrics=[],message=message)
+            if script is not None:
+                return dict(kind='ok', output=text, message='')
             from .collect_extended import parse_ssh
             return dict(kind='ok',metrics=parse_metrics(text),message='',**parse_ssh(text,target))
     except (OSError,subprocess.TimeoutExpired):
