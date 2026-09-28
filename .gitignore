@@ -1,0 +1,36 @@
+# Local Python and editor files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.project
+.settings/
+.DS_Store
+Thumbs.db
+
+# Local development data, credentials and generated packages
+/dev-data/
+/entwicklungsdaten/
+/test-data/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.log
+*.log.*
+*.key
+*.nmlic
+.env
+.env.*
+*.zip
+*.tar.gz
+/build/
+/dist/
+
+# The public verification key belongs to the application.
+!netzmonitor/license-public.pem

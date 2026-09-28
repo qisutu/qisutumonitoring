@@ -1,0 +1,291 @@
+/* Qisutu Monitoring uses the colors and original assets of the Qisutu ticket system. */
+:root {
+  --qisutu-primary: #015068;
+  --qisutu-primary-hover: #013f52;
+  --qisutu-primary-soft: rgba(1, 80, 104, .10);
+  --bg: #f4f7f9;
+  --ink: #1f2933;
+  --muted: #6b7785;
+  --line: #d8e0e7;
+  --green: var(--qisutu-primary);
+  --navy: var(--qisutu-primary);
+  --mint: var(--qisutu-primary-soft);
+  --red: #b42318;
+  --sidebar-width: 248px;
+}
+body {font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.45; background: var(--bg); color: var(--ink);}
+h1 {font-size: 30px; line-height: 1.2; font-weight: 700; letter-spacing: 0;}
+h2 {font-size: 20px; line-height: 1.3;}
+h3 {font-size: 16px;}
+.content {padding: 28px;}
+.page-heading p {font-size: 15px; line-height: 1.45; margin-top: 8px;}
+.primary, .secondary {min-height: 38px; padding: 8px 14px; border-radius: 7px; font-size: 15px; font-weight: 700;}
+input, select, textarea {font-size: 14px;}
+label {font-size: 14px;}
+.panel-heading p, .settings-card p, .page-note, .hint {font-size: 14px;}
+.panel-heading h2 {font-size: 18px;}
+.table-tools input, .table-tools select {font-size: 14px; height: 38px;}
+table {font-size: 14px;}
+th, th button {font-size: 12px; font-weight: 700; text-transform: uppercase;}
+.device-name {font-size: 14px; font-weight: 700;}
+.device-address, .cell-note, .badge {font-size: 12px;}
+.text-link, .metric, .mono {font-size: 14px;}
+.row-action, .pager, .pager label, .pager select, .pager button {font-size: 13px;}
+.topbar, .topbar-right, .connection {font-size: 13px;}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #31859e;
+  outline-offset: 3px;
+}
+.primary {background: var(--qisutu-primary); box-shadow: none;}
+.primary:hover {background: var(--qisutu-primary-hover);}
+.secondary {border-color: var(--line); color: var(--qisutu-primary);}
+.secondary:hover {background: var(--qisutu-primary-soft);}
+input, select, textarea {border-color: var(--line);}
+input[type=checkbox], progress {accent-color: var(--qisutu-primary);}
+.panel {border-color: var(--line); border-radius: 8px; box-shadow: 0 12px 30px rgba(15,23,42,.06);}
+.device-name, .text-link, .row-action:hover, .menu-button:hover {color: var(--qisutu-primary);}
+.text-danger, .row-action.danger:hover {color: var(--red);}
+.group-tag, .count {background: var(--qisutu-primary-soft); color: var(--qisutu-primary);}
+.hint {background: #eaf1f4; border-color: var(--line); color: #315b68;}
+.empty-symbol {color: var(--qisutu-primary);}
+.toast {background: var(--qisutu-primary-hover);}
+th, .bounded th {background: #f4f7f9; color: var(--muted);}
+tbody tr:hover {background: rgba(1, 80, 104, .04);}
+#license-preview {background: #eef4f6; border-color: var(--line);}
+.integration-result:not(:empty), .integration-pin-result code, .integration-help pre {background: #eef4f6;}
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: var(--sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--qisutu-primary);
+  color: rgba(255, 255, 255, .84);
+  overflow: visible;
+}
+.brand {
+  display: flex;
+  flex: 0 0 64px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  margin: 0;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, .14);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-decoration: none;
+}
+.brand-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .16);
+}
+.brand img {display: block; width: 34px; height: 34px; object-fit: contain;}
+.brand-name {display: flex; flex-direction: column; gap: 3px; min-width: 0; line-height: 1.1;}
+.brand-title {display: flex; align-items: baseline; gap: 6px; font-size: 18px; font-weight: 700;}
+.brand-title small {font-size: 11px; font-weight: 600; color: inherit; opacity: .78;}
+.brand-product {font-size: 12px; font-weight: 400; letter-spacing: .2px; color: rgba(255, 255, 255, .84);}
+.sidebar nav {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.35) transparent;
+}
+.nav-button {
+  flex: 0 0 42px;
+  width: 100%;
+  min-height: 42px;
+  height: 42px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  margin: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(255,255,255,.84);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.nav-button .nav-icon {
+  display: inline-flex;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255,255,255,.14);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+.nav-button .nav-text {width: auto; color: inherit; font-size: inherit; line-height: 1.25;}
+.nav-button:hover {background: rgba(255,255,255,.10); color: #fff;}
+.nav-button.active, .nav-button.active:hover {background: #fff; color: var(--qisutu-primary); box-shadow: none;}
+.nav-button.active .nav-icon {background: var(--qisutu-primary-soft); color: var(--qisutu-primary);}
+.sidebar-user {position: relative; flex: none; display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.14);}
+.sidebar-user-avatar, .sidebar-user-settings {display: inline-flex; flex: 0 0 36px; width: 36px; height: 36px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.18); color: #fff; font-size: 13px; font-weight: 700;}
+.sidebar-user-settings {margin-left: auto; font-size: 18px;}
+.sidebar-user-avatar:hover, .sidebar-user-settings:hover {background: rgba(255,255,255,.28);}
+.sidebar-user-text {flex: 1; min-width: 0;}
+.sidebar-user-name {overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; font-size: 15px; font-weight: 700;}
+.sidebar-user-logout {display: block; padding: 0; border: 0; background: transparent; color: rgba(255,255,255,.78); font-size: 13px; text-align: left;}
+.sidebar-user-logout:hover {color: #fff; text-decoration: underline;}
+.sidebar-user-flyout {position: absolute; bottom: calc(100% + 8px); left: 10px; width: 230px; max-width: calc(100vw - 20px); padding: 10px; border-radius: 9px; background: var(--qisutu-primary); box-shadow: 0 12px 30px rgba(15,23,42,.24); z-index: 150;}
+.sidebar-user-flyout:not([hidden]) {display: grid; gap: 4px;}
+.sidebar-user-flyout strong {padding: 8px; color: #fff; overflow-wrap: anywhere;}
+.sidebar-user-flyout button {padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #fff; font-size: 14px; text-align: left;}
+.sidebar-user-flyout button:hover {background: rgba(255,255,255,.14);}
+.sidebar a:focus-visible, .sidebar button:focus-visible {outline-color: #fff; outline-offset: -3px;}
+main {margin-left: var(--sidebar-width); min-width: 0;}
+.topbar {height: 64px; gap: 12px; padding: 0 28px;}
+.topbar-left {display: flex; align-items: center; gap: 14px; min-width: 0;}
+.breadcrumb-wrap {white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.sidebar-toggle {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    z-index: 120;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(1, 80, 104, 0.22);
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--qisutu-primary);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.20);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+    transition:
+        background-color 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease;
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:focus-visible {
+    background: #f4f7f9;
+    color: var(--qisutu-primary-hover);
+    border-color: rgba(1, 80, 104, 0.38);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24);
+}
+
+.sidebar-toggle:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.95);
+    outline-offset: 2px;
+}
+
+.sidebar-toggle-icon {
+    display: block;
+    margin-top: -2px;
+    font-size: 25px;
+    font-weight: 400;
+}
+
+html.sidebar-collapsed .sidebar-toggle {
+    right: -14px;
+}
+
+.login-page {background: radial-gradient(ellipse at 10% 10%, #e0edf2 0%, transparent 50%), var(--bg);}
+.login-brand {gap: 12px; font-size: 26px; color: var(--qisutu-primary); letter-spacing: -.5px;}
+.login-brand img {width: 56px; height: 56px; object-fit: contain;}
+.login-card {border-color: var(--line); box-shadow: 0 18px 45px rgba(15,23,42,.10);}
+.login-note {color: var(--muted);}
+
+@media (min-width: 901px) {
+  html.sidebar-collapsed {--sidebar-width: 68px;}
+  html.sidebar-collapsed #sidebar {width: 68px;}
+  html.sidebar-collapsed #application > main {margin-left: 68px;}
+  .sidebar-collapsed .brand {padding: 0; justify-content: center;}
+  .sidebar-collapsed .brand-name, .sidebar-collapsed .nav-text,
+  .sidebar-collapsed .sidebar-user-text, .sidebar-collapsed .sidebar-user-settings {display: none;}
+  .sidebar-collapsed .sidebar nav {padding: 16px 10px; align-items: center;}
+  .sidebar-collapsed .nav-button {width: 44px; min-width: 44px; flex-basis: 44px; justify-content: center; gap: 0; padding: 0;}
+  .sidebar-collapsed .sidebar-user {padding: 14px 0; justify-content: center;}
+  .sidebar-collapsed .sidebar-user-flyout {bottom: 10px; left: calc(100% + 10px);}
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .topbar {padding: 0 20px;}
+  .topbar-right {gap: 8px;}
+  .topbar-right #updated {display: none;}
+}
+@media (max-width: 900px) {
+  .sidebar {position: relative; width: 100%; height: auto; overflow: visible;}
+  .brand {padding: 0 18px; flex-basis: 64px;}
+  .sidebar nav {display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding: 12px; gap: 6px; max-height: 50vh; overflow: auto;}
+  .nav-button {font-size: 14px; gap: 8px; padding: 0 10px;}
+  .sidebar-toggle {display: none;}
+  main {margin-left: 0;}
+  .topbar {height: 56px; padding: 0 18px;}
+  .topbar-left {gap: 10px;}
+  .topbar-right {gap: 8px; flex: none;}
+  .topbar-right #updated {display: none;}
+  .content {padding: 20px 18px;}
+}
+@media (max-width: 580px) {
+  .sidebar nav {grid-template-columns: repeat(2, minmax(0,1fr));}
+  .nav-button {font-size: 14px; gap: 6px; padding: 0 8px;}
+  .nav-button .nav-text {min-width: 0; white-space: normal; overflow-wrap: anywhere;}
+  .page-heading .primary {font-size: 15px;}
+  .content {padding: 18px 12px;}
+  .topbar {padding: 0 12px;}
+  .workspace-label, .topbar-right .connection {display: none;}
+  .login-brand {font-size: 23px; gap: 8px;}
+  .login-brand img {width: 46px; height: 46px;}
+}
+.setup-switch input {accent-color: var(--qisutu-primary);}
+.setup-context {background: var(--bg); border-color: var(--line);}
+.setup-jumps button, .back-link, .chart-open:hover {color: var(--qisutu-primary);}
+.connection-tabs button[aria-pressed=true] {color: var(--qisutu-primary);}
+#connection-canvas:focus-visible {outline-color: var(--qisutu-primary);}
+.connection-node.selected .connection-node-card,
+.connection-node:focus-visible .connection-node-card {stroke: var(--qisutu-primary); fill: #eef4f6;}
+.nav-button.active .nav-text {color: var(--qisutu-primary);}
+@media (max-width: 360px) {
+  .nav-button {font-size: 13px; padding: 0 6px;}
+  .nav-button .nav-icon {flex-basis: 20px; width: 20px;}
+}
+
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Account controls share Qisutu's footer, including the collapsed navigation. */
+#agents-list td {overflow-wrap: anywhere;}
+#agent-form, #profile-form {min-width: 0;}

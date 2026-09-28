@@ -1,0 +1,21 @@
+.license-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.license-card{padding:24px;min-width:0}
+.license-card h2{margin-top:0}.license-card p{line-height:1.55}
+.license-card label{display:block;margin:14px 0 7px;font-weight:600}
+.license-id{width:100%;font-family:monospace;min-width:0}
+.license-details{display:grid;grid-template-columns:minmax(100px,1fr) minmax(100px,1.4fr);gap:12px 20px;margin:20px 0}
+.license-details dt{color:var(--muted,#65748b)}.license-details dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.license-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+#license-preview{margin-top:20px;padding:18px;background:#f1f6fc;border:1px solid #c7d8ef;border-radius:10px}
+#license-success{color:#166534;font-weight:600;padding:12px;background:#ecfdf3;border-radius:8px}
+#license-file{display:block;max-width:100%}
+#license-global-notice button{margin-left:10px}
+#license-capacity{font-size:13px}
+.license-selection-card{grid-column:1/-1}
+.license-selection-toolbar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.license-selection-toolbar input{flex:1;min-width:180px}
+.license-selection-card .bounded{max-height:470px}
+.badge.unlicensed{color:#475569;background:#e2e8f0}
+.metric-cell.unlicensed{color:#64748b}.metric-cell.unlicensed .meter-value{fill:#94a3b8}
+@media(max-width:1000px){.license-grid{grid-template-columns:1fr}}
+@media(max-width:500px){.license-card{padding:16px}.license-details{grid-template-columns:1fr;gap:4px}.license-details dd{margin-bottom:12px}}

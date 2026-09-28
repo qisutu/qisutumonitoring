@@ -1,0 +1,4 @@
+# Keep the release checksums valid on every platform.
+* text=auto eol=lf
+*.png binary
+*.ico binary
