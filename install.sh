@@ -36,7 +36,7 @@ find_python() {
 if ! find_python || ! command -v ping >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; then
  if [ "$PACKAGES" = 1 ]; then
   echo 'Benötigte Systempakete werden installiert …'
-  if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y python3 iputils-ping openssl
+  if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y --no-remove --no-upgrade python3 iputils-ping openssl
   elif command -v dnf >/dev/null 2>&1; then dnf install -y python3 iputils openssl; find_python || dnf install -y python3.11
   elif command -v yum >/dev/null 2>&1; then yum install -y python3 iputils openssl; find_python || yum install -y python3.11
   elif command -v zypper >/dev/null 2>&1; then zypper --non-interactive install python3 iputils openssl; find_python || zypper --non-interactive install python311
@@ -54,7 +54,7 @@ if [ -z "$DESTDIR" ]; then
 fi
 if { ! command -v ssh >/dev/null 2>&1 || ! command -v ssh-keyscan >/dev/null 2>&1; } && [ "$PACKAGES" = 1 ]; then
  echo 'OpenSSH-Client für Ressourcenabfragen wird installiert …'
- if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y openssh-client
+ if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y --no-remove --no-upgrade openssh-client
  elif command -v dnf >/dev/null 2>&1; then dnf install -y openssh-clients
  elif command -v yum >/dev/null 2>&1; then yum install -y openssh-clients
  elif command -v zypper >/dev/null 2>&1; then zypper --non-interactive install openssh
@@ -67,7 +67,7 @@ fi
 # Only the SNMP client is needed on the monitoring server.
 if { ! command -v snmpbulkwalk >/dev/null 2>&1 || ! command -v snmpwalk >/dev/null 2>&1; } && [ "$PACKAGES" = 1 ]; then
  echo 'Net-SNMP für Ressourcen- und Schnittstellenabfragen wird installiert …'
- if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y snmp
+ if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y --no-remove --no-upgrade snmp
  elif command -v dnf >/dev/null 2>&1; then dnf install -y net-snmp-utils
  elif command -v yum >/dev/null 2>&1; then yum install -y net-snmp-utils
  elif command -v zypper >/dev/null 2>&1; then zypper --non-interactive install net-snmp
@@ -80,17 +80,48 @@ fi
 if [ -z "$DESTDIR" ] && { ! command -v snmpbulkwalk >/dev/null 2>&1 || ! command -v snmpwalk >/dev/null 2>&1; }; then
  echo 'Hinweis: SNMP-Prüfungen benötigen snmpbulkwalk und snmpwalk. SSH, Ping und Dienste bleiben nutzbar.' >&2
 fi
-# Distribution clients only; no database server is installed.
-if { ! command -v psql >/dev/null 2>&1 || { ! command -v mariadb >/dev/null 2>&1 && ! command -v mysql >/dev/null 2>&1; }; } && [ "$PACKAGES" = 1 ]; then
- echo 'Datenbank-Clients für PostgreSQL und MariaDB/MySQL werden installiert …'
- if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y postgresql-client default-mysql-client ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v dnf >/dev/null 2>&1; then dnf install -y postgresql mariadb ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v yum >/dev/null 2>&1; then yum install -y postgresql mariadb ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v zypper >/dev/null 2>&1; then zypper --non-interactive install postgresql mariadb-client ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v apk >/dev/null 2>&1; then apk add postgresql-client mariadb-client ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v pacman >/dev/null 2>&1; then pacman -S --needed --noconfirm postgresql-libs mariadb-clients ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- elif command -v xbps-install >/dev/null 2>&1; then xbps-install -Sy postgresql-client mariadb-client ca-certificates || echo 'Clientpakete bitte manuell bereitstellen.' >&2
- else echo 'PostgreSQL-Client und MariaDB/MySQL-Client bitte über die Paketverwaltung bereitstellen.' >&2
+# Reuse either MariaDB or MySQL; a missing PostgreSQL client must never
+# trigger a switch of the existing MySQL/MariaDB package family.
+install_database_client() {
+ db_engine=$1
+ echo "Fehlender Datenbank-Client wird installiert: $db_engine …"
+ if command -v apt-get >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql-client ;; mysql) db_package=mariadb-client ;; esac
+  # Enforce the removal guard on the real transaction (a simulation alone
+  # would leave a race). Never retry without it or request a server package.
+  apt-get update && apt-get install -y --no-remove --no-upgrade "$db_package" ca-certificates
+ elif command -v dnf >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql ;; mysql) db_package=mariadb ;; esac
+  dnf install -y "$db_package" ca-certificates
+ elif command -v yum >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql ;; mysql) db_package=mariadb ;; esac
+  yum install -y "$db_package" ca-certificates
+ elif command -v zypper >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql ;; mysql) db_package=mariadb-client ;; esac
+  zypper --non-interactive install "$db_package" ca-certificates
+ elif command -v apk >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql-client ;; mysql) db_package=mariadb-client ;; esac
+  apk add "$db_package" ca-certificates
+ elif command -v pacman >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql-libs ;; mysql) db_package=mariadb-clients ;; esac
+  pacman -S --needed --noconfirm "$db_package" ca-certificates
+ elif command -v xbps-install >/dev/null 2>&1; then
+  case "$db_engine" in postgresql) db_package=postgresql-client ;; mysql) db_package=mariadb-client ;; esac
+  xbps-install -Sy "$db_package" ca-certificates
+ else
+  return 1
+ fi
+}
+if [ "$PACKAGES" = 1 ]; then
+ if ! command -v psql >/dev/null 2>&1; then
+  if ! install_database_client postgresql; then
+   echo 'PostgreSQL-Client konnte nicht sicher installiert werden. Passendes Clientpaket bitte manuell bereitstellen; PostgreSQL-Prüfungen sind bis dahin nicht verfügbar.' >&2
+  fi
+ fi
+ if ! command -v mariadb >/dev/null 2>&1 && ! command -v mysql >/dev/null 2>&1; then
+  if ! install_database_client mysql; then
+   echo 'MariaDB/MySQL-Client konnte nicht sicher installiert werden. Passendes Clientpaket bitte manuell bereitstellen; MariaDB/MySQL-Prüfungen sind bis dahin nicht verfügbar.' >&2
+  fi
  fi
 fi
 APP="$DESTDIR/opt/netzmonitor"

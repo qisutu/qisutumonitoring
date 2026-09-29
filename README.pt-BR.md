@@ -60,6 +60,16 @@ dados exigem os respectivos clientes OpenSSH, Net-SNMP e de bancos de dados. Nã
 são necessários Docker, outro servidor web ou um servidor de banco de dados
 externo.
 
+Os clientes PostgreSQL e MariaDB/MySQL existentes são reutilizados. Os clientes
+de bancos de dados ausentes são instalados de forma independente. No
+Debian/Ubuntu, todos os comandos de instalação do APT usam `--no-remove` para
+impedir a remoção de pacotes instalados e `--no-upgrade` para evitar a atualização
+dos pacotes solicitados explicitamente que já estejam instalados. Se a instalação
+de um cliente de banco de dados opcional exigir a remoção de algum pacote, essa
+etapa será ignorada com um aviso. As verificações de bancos de dados
+correspondentes exigirão então a instalação manual de um pacote de cliente
+compatível.
+
 O Tornado e todos os arquivos da interface são incluídos localmente. Com os
 pacotes de sistema já instalados, a instalação com `--skip-packages` e o uso
 posterior são possíveis sem acesso à Internet.

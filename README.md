@@ -47,7 +47,7 @@ Projektwebsite: https://monitoring.qisutu.de
 ## Release-Status
 
 Version 1.0.1 ist die erste öffentliche Veröffentlichung von Qisutu Monitoring.
-Das vollständige Installationspaket heißt `QisutuMonitoring-1.0.1.tar.gz` und
+Das vollständige Installationspaket heißt `qisutumonitoring-1.0.1.tar.gz` und
 enthält das Programm, die Weboberfläche, alle elf Sprachdateien und die benötigte
 Tornado-Bibliothek.
 
@@ -69,6 +69,15 @@ Der Installer kann fehlende Systempakete über die Paketverwaltung installieren.
 Für SSH-, SNMP- und Datenbankprüfungen werden die entsprechenden OpenSSH-,
 Net-SNMP- und Datenbank-Clients benötigt. Docker, ein zusätzlicher Webserver und
 ein externer Datenbankserver sind nicht erforderlich.
+
+Vorhandene PostgreSQL- und MariaDB/MySQL-Clients werden weiterverwendet.
+Fehlende Datenbank-Clients werden unabhängig voneinander installiert. Unter
+Debian/Ubuntu verhindern alle APT-Installationsaufrufe mit `--no-remove` die
+Entfernung bereits installierter Pakete. `--no-upgrade` vermeidet außerdem
+Upgrades bereits installierter, ausdrücklich angeforderter Pakete. Erfordert ein
+optionaler Datenbank-Client eine Paketentfernung, wird dieser Installationsschritt
+mit einem Hinweis übersprungen. Die zugehörigen Datenbankprüfungen benötigen dann
+ein manuell bereitgestelltes, kompatibles Clientpaket.
 
 Tornado und alle Dateien der Weboberfläche werden lokal mitgeliefert. Sind die
 Systempakete bereits vorhanden, ist die Installation mit `--skip-packages` und der

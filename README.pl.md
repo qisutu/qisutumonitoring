@@ -60,6 +60,15 @@ systemowe przez menedżer pakietów. Kontrole SSH, SNMP i baz danych wymagają
 odpowiednich klientów OpenSSH, Net-SNMP i baz danych. Docker, dodatkowy serwer WWW
 i zewnętrzny serwer bazy danych nie są potrzebne.
 
+Istniejące klienty PostgreSQL i MariaDB/MySQL są nadal używane. Brakujące klienty
+baz danych są instalowane niezależnie od siebie. W Debianie/Ubuntu wszystkie
+polecenia instalacji APT używają `--no-remove`, aby zapobiec usuwaniu
+zainstalowanych pakietów, oraz `--no-upgrade`, aby nie aktualizować jawnie
+wskazanych pakietów, które są już zainstalowane. Jeśli instalacja opcjonalnego
+klienta bazy danych wymaga usunięcia pakietu, ten krok jest pomijany z ostrzeżeniem.
+Odpowiednie kontrole baz danych wymagają wtedy ręcznej instalacji zgodnego
+pakietu klienta.
+
 Tornado i wszystkie pliki interfejsu są dołączone lokalnie. Jeśli pakiety
 systemowe są już zainstalowane, instalacja z `--skip-packages` i dalsza praca są
 możliwe bez dostępu do internetu.

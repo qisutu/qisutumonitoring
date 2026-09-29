@@ -61,6 +61,16 @@ et de bases de données nécessitent les clients OpenSSH, Net-SNMP et de bases d
 données correspondants. Docker, un serveur web supplémentaire et un serveur de
 base de données externe ne sont pas nécessaires.
 
+Les clients PostgreSQL et MariaDB/MySQL existants sont réutilisés. Les clients
+de bases de données manquants sont installés indépendamment les uns des autres.
+Sous Debian/Ubuntu, toutes les commandes d’installation APT utilisent
+`--no-remove` pour empêcher la suppression de paquets installés et `--no-upgrade`
+pour éviter la mise à niveau des paquets explicitement demandés qui sont déjà
+installés. Si l’installation d’un client de base de données facultatif nécessite
+la suppression d’un paquet, cette étape est ignorée avec un avertissement. Les
+contrôles de bases de données correspondants nécessitent alors l’installation
+manuelle d’un paquet client compatible.
+
 Tornado et tous les fichiers de l’interface sont fournis localement. Si les
 paquets système sont déjà installés, l’installation avec `--skip-packages` puis
 l’exploitation sont possibles sans accès Internet.

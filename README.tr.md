@@ -59,6 +59,15 @@ paket yöneticisi üzerinden kurabilir. SSH, SNMP ve veritabanı denetimleri ilg
 OpenSSH, Net-SNMP ve veritabanı istemcilerini gerektirir. Docker, ek bir web
 sunucusu veya harici veritabanı sunucusu gerekmez.
 
+Mevcut PostgreSQL ve MariaDB/MySQL istemcileri kullanılmaya devam eder. Eksik
+veritabanı istemcileri birbirinden bağımsız olarak kurulur. Debian/Ubuntu’da tüm
+APT kurulum komutları, kurulu paketlerin kaldırılmasını önlemek için `--no-remove`
+ve açıkça istenen, zaten kurulu paketlerin yükseltilmesini önlemek için
+`--no-upgrade` kullanır. İsteğe bağlı bir veritabanı istemcisinin kurulumu bir
+paketin kaldırılmasını gerektiriyorsa bu adım bir uyarıyla atlanır. İlgili
+veritabanı denetimleri için bu durumda uyumlu bir istemci paketinin elle kurulması
+gerekir.
+
 Tornado ve tüm arayüz dosyaları yerel olarak sağlanır. Sistem paketleri önceden
 kuruluysa `--skip-packages` ile kurulum ve sonraki kullanım internet erişimi
 olmadan mümkündür.

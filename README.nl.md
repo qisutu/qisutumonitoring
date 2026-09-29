@@ -59,6 +59,15 @@ systeempakketten via de pakketbeheerder installeren. SSH-, SNMP- en
 databasecontroles vereisen de bijbehorende OpenSSH-, Net-SNMP- en databaseclients.
 Docker, een aanvullende webserver en een externe databaseserver zijn niet nodig.
 
+Bestaande PostgreSQL- en MariaDB/MySQL-clients worden hergebruikt. Ontbrekende
+databaseclients worden onafhankelijk van elkaar geïnstalleerd. Op Debian/Ubuntu
+gebruiken alle APT-installatieopdrachten `--no-remove` om het verwijderen van
+geïnstalleerde pakketten te voorkomen en `--no-upgrade` om expliciet aangevraagde
+pakketten die al geïnstalleerd zijn niet te upgraden. Als de installatie van een
+optionele databaseclient het verwijderen van een pakket vereist, wordt deze stap
+met een waarschuwing overgeslagen. Voor de bijbehorende databasecontroles moet dan
+handmatig een compatibel clientpakket worden geïnstalleerd.
+
 Tornado en alle interfacebestanden worden lokaal meegeleverd. Wanneer de
 systeempakketten al aanwezig zijn, zijn installatie met `--skip-packages` en
 verder gebruik zonder internettoegang mogelijk.

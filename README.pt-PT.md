@@ -60,6 +60,15 @@ falta através do gestor de pacotes. As verificações SSH, SNMP e de bases de d
 exigem os respetivos clientes OpenSSH, Net-SNMP e de bases de dados. Não são
 necessários Docker, outro servidor web ou um servidor de base de dados externo.
 
+Os clientes PostgreSQL e MariaDB/MySQL existentes são reutilizados. Os clientes
+de bases de dados em falta são instalados de forma independente. No Debian/Ubuntu,
+todos os comandos de instalação do APT utilizam `--no-remove` para impedir a
+remoção de pacotes instalados e `--no-upgrade` para evitar a atualização dos
+pacotes explicitamente pedidos que já estejam instalados. Se a instalação de um
+cliente de base de dados opcional exigir a remoção de algum pacote, esse passo é
+ignorado com um aviso. As verificações de bases de dados correspondentes passam
+então a exigir a instalação manual de um pacote de cliente compatível.
+
 O Tornado e todos os ficheiros da interface são incluídos localmente. Com os
 pacotes de sistema já instalados, a instalação com `--skip-packages` e a
 utilização posterior são possíveis sem acesso à Internet.

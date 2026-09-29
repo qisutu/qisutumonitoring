@@ -23,6 +23,15 @@ Die Tests aus dem Projektverzeichnis starten:
 
     python3 -m unittest discover -s tests -v
 
+Die gezielten Installer-Regressionstests laufen ohne echte Paketinstallation
+oder Dienständerung mit isolierten Programm- und Paketmanager-Attrappen:
+
+    python3 -m unittest discover -s tests -p test_installer_packages.py -v
+
+Sie prüfen insbesondere vorhandene MariaDB-/MySQL-Clients bei fehlendem
+PostgreSQL-Client, verweigerte Paketentfernungen, fehlende Paketquellen sowie
+`--skip-packages` und den Staging-Modus.
+
 Für die JavaScript-Tests wird Node.js benötigt. SSH-Transporttests verwenden
 optional Paramiko. Diese Werkzeuge sind keine Betriebsabhängigkeiten der
 installierten Anwendung.

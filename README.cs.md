@@ -60,6 +60,15 @@ prostřednictvím správce balíčků. Kontroly SSH, SNMP a databází vyžaduj�
 odpovídající klienty OpenSSH, Net-SNMP a databází. Docker, další webový server ani
 externí databázový server nejsou potřeba.
 
+Stávající klienti PostgreSQL a MariaDB/MySQL se používají i nadále. Chybějící
+databázoví klienti se instalují nezávisle na sobě. V Debianu/Ubuntu všechny
+instalační příkazy APT používají `--no-remove`, aby zabránily odstranění již
+nainstalovaných balíčků, a `--no-upgrade`, aby neaktualizovaly výslovně požadované
+balíčky, které jsou již nainstalovány. Pokud by instalace volitelného databázového
+klienta vyžadovala odstranění balíčku, tento krok se přeskočí s upozorněním.
+Příslušné databázové kontroly pak vyžadují ruční instalaci kompatibilního
+klientského balíčku.
+
 Tornado i všechny soubory rozhraní jsou přiloženy místně. Pokud jsou systémové
 balíčky již nainstalovány, instalace s `--skip-packages` i následný provoz jsou
 možné bez internetu.

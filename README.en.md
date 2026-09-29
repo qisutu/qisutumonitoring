@@ -60,6 +60,14 @@ system packages through the package manager. SSH, SNMP and database checks requi
 the corresponding OpenSSH, Net-SNMP and database clients. Docker, an additional
 web server and an external database server are not required.
 
+Existing PostgreSQL and MariaDB/MySQL clients are reused. Missing database
+clients are installed independently. On Debian/Ubuntu, all APT installation
+commands use `--no-remove` to prevent removal of installed packages and
+`--no-upgrade` to avoid upgrading explicitly requested packages that are already
+installed. If an optional database client would require a package removal, its
+installation is skipped with a warning. The corresponding database checks then
+require a compatible client package to be provided manually.
+
 Tornado and all web interface files are bundled locally. With the system packages
 already installed, installation using `--skip-packages` and subsequent operation
 are possible without internet access.

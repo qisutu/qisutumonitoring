@@ -60,6 +60,15 @@ sistema mancanti tramite il gestore dei pacchetti. I controlli SSH, SNMP e
 database richiedono i rispettivi client OpenSSH, Net-SNMP e database. Non sono
 necessari Docker, un altro server web o un server database esterno.
 
+I client PostgreSQL e MariaDB/MySQL già presenti vengono riutilizzati. I client
+database mancanti vengono installati indipendentemente l’uno dall’altro. Su
+Debian/Ubuntu, tutti i comandi di installazione APT usano `--no-remove` per impedire
+la rimozione dei pacchetti installati e `--no-upgrade` per evitare l’aggiornamento
+dei pacchetti richiesti esplicitamente che sono già installati. Se l’installazione
+di un client database opzionale richiede la rimozione di un pacchetto, il passaggio
+viene saltato con un avviso. I relativi controlli database richiedono quindi
+l’installazione manuale di un pacchetto client compatibile.
+
 Tornado e tutti i file dell’interfaccia sono inclusi localmente. Con i pacchetti
 di sistema già presenti, l’installazione con `--skip-packages` e il successivo
 utilizzo sono possibili senza accesso a Internet.
