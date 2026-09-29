@@ -40,7 +40,7 @@ Strona projektu: https://monitoring.qisutu.de
 ## Status wydania
 
 Wersja 1.0.1 jest pierwszym publicznym wydaniem Qisutu Monitoring. Pełny pakiet
-`qisutumonitoring-1.0.1.tar.gz` zawiera aplikację, interfejs WWW, jedenaście
+`QisutuMonitoring-1.0.1.tar.gz` zawiera aplikację, interfejs WWW, jedenaście
 plików językowych i wymaganą bibliotekę Tornado.
 
 ## Języki
@@ -75,11 +75,11 @@ możliwe bez dostępu do internetu.
 
 ## Instalacja
 
-Pobierz `qisutumonitoring-1.0.1.tar.gz` i wykonaj poniższe polecenia w katalogu
-pobierania:
+Pobierz pakiet za pomocą `wget`, rozpakuj go i rozpocznij instalację:
 
-    tar xzf qisutumonitoring-1.0.1.tar.gz
-    cd qisutumonitoring-1.0.1
+    wget https://ftp.qisutu.de/Monitoring/QisutuMonitoring-1.0.1.tar.gz
+    tar xzf QisutuMonitoring-1.0.1.tar.gz
+    cd QisutuMonitoring
     sudo sh install.sh
 
 Instalator umieszcza aplikację w `/opt/netzmonitor`, a dane w

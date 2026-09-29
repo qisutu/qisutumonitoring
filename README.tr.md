@@ -40,7 +40,7 @@ Proje sitesi: https://monitoring.qisutu.de
 ## Sürüm durumu
 
 1.0.1, Qisutu Monitoring’in ilk herkese açık sürümüdür. Tam kurulum paketi
-`qisutumonitoring-1.0.1.tar.gz`; uygulamayı, web arayüzünü, on bir dil dosyasını
+`QisutuMonitoring-1.0.1.tar.gz`; uygulamayı, web arayüzünü, on bir dil dosyasını
 ve gerekli Tornado kütüphanesini içerir.
 
 ## Diller
@@ -74,11 +74,11 @@ olmadan mümkündür.
 
 ## Kurulum
 
-`qisutumonitoring-1.0.1.tar.gz` paketini indirin ve indirme dizininde şu komutları
-çalıştırın:
+Paketi `wget` ile indirin, arşivden çıkarın ve kurulumu başlatın:
 
-    tar xzf qisutumonitoring-1.0.1.tar.gz
-    cd qisutumonitoring-1.0.1
+    wget https://ftp.qisutu.de/Monitoring/QisutuMonitoring-1.0.1.tar.gz
+    tar xzf QisutuMonitoring-1.0.1.tar.gz
+    cd QisutuMonitoring
     sudo sh install.sh
 
 Kurulum aracı uygulamayı `/opt/netzmonitor`, verileri `/var/lib/netzmonitor`

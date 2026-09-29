@@ -40,7 +40,7 @@ Web projektu: https://monitoring.qisutu.de
 ## Stav vydání
 
 Verze 1.0.1 je prvním veřejným vydáním Qisutu Monitoring. Kompletní instalační
-balíček `qisutumonitoring-1.0.1.tar.gz` obsahuje aplikaci, webové rozhraní, všech
+balíček `QisutuMonitoring-1.0.1.tar.gz` obsahuje aplikaci, webové rozhraní, všech
 jedenáct jazykových souborů a potřebnou knihovnu Tornado.
 
 ## Jazyky
@@ -75,11 +75,11 @@ možné bez internetu.
 
 ## Instalace
 
-Stáhněte `qisutumonitoring-1.0.1.tar.gz` a v adresáři pro stahování spusťte
-následující příkazy:
+Stáhněte instalační balíček pomocí `wget`, rozbalte jej a spusťte instalaci:
 
-    tar xzf qisutumonitoring-1.0.1.tar.gz
-    cd qisutumonitoring-1.0.1
+    wget https://ftp.qisutu.de/Monitoring/QisutuMonitoring-1.0.1.tar.gz
+    tar xzf QisutuMonitoring-1.0.1.tar.gz
+    cd QisutuMonitoring
     sudo sh install.sh
 
 Instalátor uloží aplikaci do `/opt/netzmonitor` a data do `/var/lib/netzmonitor`.

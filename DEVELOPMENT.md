@@ -47,8 +47,8 @@ Die deutsche Dokumentation steht in `README.md`. Die zehn Übersetzungen heißen
 
 ## Release-Paket
 
-Das Release-Archiv heißt `qisutumonitoring-1.0.1.tar.gz` und enthält als oberste
-Verzeichnisebene `qisutumonitoring-1.0.1/`. Direkt darin liegen `install.sh`,
+Das Release-Archiv heißt `QisutuMonitoring-1.0.1.tar.gz` und enthält als oberste
+Verzeichnisebene `QisutuMonitoring/`. Direkt darin liegen `install.sh`,
 `run.py`, `SHA256SUMS`, `LICENSE`, die README-Dateien und die Projektordner.
 Diese Struktur entspricht den Installationsbefehlen in allen Sprachfassungen.
 Beim Export aus Eclipse muss diese Verzeichnisstruktur erhalten bleiben.
